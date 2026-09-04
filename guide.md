@@ -119,11 +119,11 @@ Open `test/order-api.test.js`.
 The tests are intentionally simple and help answer an important question: does the system cover normal and opted-out customers, but miss the null/legacy-data case?
 
 Look for gaps:
-- Are there tests for a customer with `notificationPreferences: null`?
-- Are there tests for legacy records with missing preference metadata?
-- Does the code treat null as a valid default or as a failure case?
+- Are there tests covering a compatibility case where customer metadata is absent or incomplete?
+- Do the tests distinguish between an explicit opt-out and a missing preference object?
+- Does the code assume the metadata is always present when it is not?
 
-This is a common production issue: the tests cover the obvious happy path and the explicit opt-out path, but not the compatibility path for older records.
+This is a common production issue: the tests cover the obvious happy path and the explicit opt-out path, but may miss the compatibility edge case for older or partially populated records.
 
 ## Step 5: Review the merged PR history
 
@@ -136,6 +136,8 @@ Open the GitHub PR list and review the three merged PRs:
 3. PR #9: checkout UI polish
 
 Your task is to determine which merged change is most likely to have introduced the regression.
+
+Answer key for the trainer: the culprit is PR #8. The story is designed so the investigator naturally lands on the notification worker, but the actual defect is the refactor in the notification pipeline path.
 
 Use the branch history and the code diff to compare what changed.
 
@@ -161,8 +163,30 @@ These commands will show the recent merged history and help you narrow the suspe
 ### What to focus on
 
 - The checkout UI PR should look unconnected to the email pipeline.
-- The performance optimization PR touches broker behavior but is likely a decoy or a weak candidate.
-- The notification pipeline refactor is the most likely culprit because it directly changed filtering logic in the worker.
+- The performance optimization PR touches broker behavior but may or may not be relevant.
+- The notification pipeline work is worth checking carefully because it touches the downstream processing path where the symptom is visible.
+
+### Direct root cause (trainer-only answer)
+
+The regression is in `src/NotificationService/notificationProcessor.js`.
+
+The worker effectively does:
+
+```js
+const marketingConfig = event.notificationPreferences;
+
+if (marketingConfig.emailEnabled === false) {
+  // skip notification
+}
+```
+
+That is unsafe whenever `notificationPreferences` is `null`. For legacy or partially populated customer records, the code dereferences `emailEnabled` on `null` and drops the event instead of treating it as email-enabled by default. This matches the symptom pattern:
+
+- orders still succeed
+- payment and order creation are unaffected
+- only a subset of records fail
+- the downstream worker logs warnings and the email path is skipped
+- PR #8 is the deployment that introduced the change
 
 ## Step 6: Trace the actual behavior in the API
 
@@ -218,7 +242,7 @@ Expected behavior: order is created and notification is processed successfully.
 
 Expected behavior: notification is skipped.
 
-### Create an order with legacy/null preference data
+### Create an order with incomplete or missing preference metadata
 
 ```json
 {
@@ -229,40 +253,21 @@ Expected behavior: notification is skipped.
 }
 ```
 
-This is the key scenario. It is the kind of “older records” case that production systems often have.
+This is the compatibility scenario worth checking. It reflects the kind of older or partial customer data production systems often carry.
 
-Expected behavior in a correct system:
-- null should be treated as “no explicit opt-out”
-- email should still be sent
+In a correct system, missing preference metadata should not silently prevent a notification from being sent unless the customer explicitly opted out.
 
-Actual behavior in the buggy code:
-- the worker may crash or skip the message when the code dereferences the preference object without a null guard
+## Step 7: Confirm the working hypothesis
 
-## Step 7: Confirm the likely root cause
+By this point the evidence should be pointing toward the notification service and a compatibility edge case around customer metadata.
 
-At this point, the evidence should point to the notification service.
+The remaining work is to validate the specific hypothesis with code and history:
 
-The likely root cause is the notification processor being written as though `notificationPreferences` is always an object:
+- a recent change touched the worker logic that decides whether a notification should be sent
+- older or partially populated customer records may not have the expected preference object
+- the system may be treating those records as if the metadata were always present
 
-```js
-if (marketingConfig.emailEnabled === false) {
-```
-
-This is unsafe when `marketingConfig` is `null`.
-
-In a real production system, legacy or partially populated customer records may have `notificationPreferences: null`.
-
-The correct behavior should be:
-
-- if preferences are missing, treat the customer as email-enabled
-- if the customer explicitly opts out, skip the email
-- only check the opt-out flag when the object is defined
-
-This exact null-safety bug matches the symptoms:
-- order creation succeeds
-- email delivery drops for only a subset of customers
-- no major API errors appear
-- only the downstream notification processing is affected
+Keep the investigation focused on whether the worker handles missing or incomplete metadata safely, and whether the compatibility case was missed in both tests and rollout validation.
 
 ## Step 8: Final incident summary
 
@@ -270,10 +275,10 @@ When you finish your investigation, summarize it in a few concise bullets:
 
 - The issue is not in checkout or order creation.
 - The issue is in the notification pipeline.
-- The likely bad change is the refactor in PR #8.
-- The pipeline assumed `notificationPreferences` was always defined.
-- Legacy/null records caused the message to be dropped or skipped.
-- The fix is null-safe preference handling and regression tests for legacy customer data.
+- The regression came from PR #8, the notification pipeline refactor.
+- The worker logic in `src/NotificationService/notificationProcessor.js` assumed `notificationPreferences` was always defined.
+- Null or missing metadata caused the event to be dropped instead of treated as email-enabled by default.
+- The final fix should make the notification path null-safe and add a regression test for legacy customer data.
 
 ## Suggested evidence to gather before concluding
 
@@ -293,10 +298,10 @@ A strong incident narrative should connect all of those artifacts together.
 You are done when you can clearly explain:
 
 - the affected system boundary
-- the likely deployment that introduced the regression
+- the deployment that introduced the regression: PR #8
 - the reason the issue appeared in a subset of traffic
 - why order success remained healthy
 - why the notification worker is the correct place to focus
-- the root cause involving `notificationPreferences` and null handling
+- that the root cause is a null-safety bug in `notificationPreferences` handling, where missing data caused the email path to be skipped
 
 Good luck.
