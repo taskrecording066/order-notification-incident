@@ -1,0 +1,15 @@
+{
+  "name": "order-notification-incident",
+  "version": "1.0.0",
+  "description": "E-commerce order notification incident investigation workshop",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

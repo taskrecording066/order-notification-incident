@@ -1,0 +1,6 @@
+{
+  "notificationPipelineRefactorEnabled": true,
+  "emailProviderFallbackEnabled": false,
+  "deadLetterQueueEnabled": true,
+  "batchPublishingEnabled": false
+}

@@ -1,0 +1,148 @@
+{
+  "info": {
+    "name": "Order Platform API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "order-platform-incident"
+  },
+  "item": [
+    {
+      "name": "Health check",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["health"]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3000/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["health"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"status\": \"ok\"\n}\n"
+        }
+      ]
+    },
+    {
+      "name": "Create order",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": \"C-1001\",\n  \"total\": 129.99,\n  \"email\": \"customer@example.com\",\n  \"notificationPreferences\": {\n    \"emailEnabled\": true\n  }\n}\n"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/orders",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "orders"]
+        }
+      },
+      "response": [
+        {
+          "name": "201 Created",
+          "originalRequest": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:3000/api/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "orders"]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "body": "{\n  \"id\": \"ord_1001\",\n  \"status\": \"created\",\n  \"customerId\": \"C-1001\",\n  \"notificationStatus\": \"queued\"\n}\n"
+        }
+      ]
+    },
+    {
+      "name": "Get order by ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/api/orders/ord_1001",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "orders", "ord_1001"]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"id\": \"ord_1001\",\n  \"customerId\": \"C-1001\",\n  \"total\": 129.99,\n  \"status\": \"created\"\n}\n"
+        }
+      ]
+    },
+    {
+      "name": "Get notifications for order",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/api/notifications/ord_1001",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "notifications", "ord_1001"]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"orderId\": \"ord_1001\",\n  \"status\": \"sent\",\n  \"messageId\": \"em_9001\"\n}\n"
+        }
+      ]
+    },
+    {
+      "name": "Retry notification",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"ord_1001\"\n}\n"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/orders/retry-notification",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "orders", "retry-notification"]
+        }
+      },
+      "response": [
+        {
+          "name": "202 Accepted",
+          "status": "Accepted",
+          "code": 202,
+          "body": "{\n  \"orderId\": \"ord_1001\",\n  \"status\": \"retry-queued\"\n}\n"
+        }
+      ]
+    }
+  ]
+}
