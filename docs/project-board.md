@@ -15,9 +15,7 @@ The incident board is organized around the investigation workflow:
 - `#2` Event publishing investigation -> Investigation
 - `#3` Notification service investigation -> Investigation
 - `#4` Deployment review -> Root Cause Analysis
-- `#5` Release validation -> Validation
-- `#6` Root cause analysis -> Closed
 
 ## Repository view
 
-The board should be used to track the issue lifecycle from triage through root cause and rollout verification.
+The board should be used to track the issue lifecycle from triage through diagnosis and validation.
