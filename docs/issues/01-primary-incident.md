@@ -4,7 +4,7 @@
 Orders are successfully created and paid, but roughly 10-20% never receive their confirmation email.
 
 ## Summary
-Starting at 09:42 UTC on Thursday, customers reporting payment success but no confirmation email began increasing. The issue is affecting a subset of orders, not all of them, and appears tied to customer records created by the legacy onboarding flow.
+Starting at 09:42 UTC on Thursday, customers reporting payment success but no confirmation email began increasing. The issue is affecting a subset of orders, not all of them, and appears tied to a subset of traffic or customer states seen during the release window.
 
 ## Business impact
 - Customer trust continues to be harmed by missing confirmation emails.
@@ -30,12 +30,12 @@ Starting at 09:42 UTC on Thursday, customers reporting payment success but no co
 - Error logs for the Order API show no significant increase.
 - There is a material increase in notification worker warnings.
 - The issue appears random, not tied to a single customer cohort.
-- Certain older customer records appear to have no notification preferences.
+- A subset of orders or customer states appears to fall outside the normal validation path.
 
 ## Investigation checklist
 - Confirm whether `OrderCreated` events are emitted consistently.
 - Review message broker delivery and replay behavior.
-- Inspect the notification worker for filtering logic introduced in the refactor.
-- Check whether `notificationPreferences` is sometimes null for legacy accounts.
+- Inspect the notification worker for filtering or validation logic introduced in the recent pipeline change.
+- Check whether a valid edge case is being treated as ineligible for a subset of traffic.
 - Compare the recent deployment diff to the last known-good release.
 - Validate retry behavior and alerting coverage.

@@ -21,7 +21,6 @@ The API listens on `http://localhost:3000`.
 - Postman collection in `docs/postman/order-platform-postman-collection.json`
 - Investigation issue set in the GitHub Issues backlog
 - Pull requests for the recent delivery history
-- Investigation walkthrough in `guide.md`
 
 ## APIs
 
